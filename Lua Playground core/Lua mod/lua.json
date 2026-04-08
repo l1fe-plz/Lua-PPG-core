@@ -1,0 +1,6 @@
+{
+  "Name": "Example of a mod",
+  "Scripts": [
+    "Example.lua"
+  ]
+}
