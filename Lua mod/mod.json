@@ -1,0 +1,17 @@
+{
+  "Name": "Basic lua mod",
+  "Author": "l1fe_plz",
+  "Description": "",
+  "ModVersion": "1",
+  "GameVersion": "1.24+",
+  "ThumbnailPath": "modicon.png",
+  "EntryPoint": "Mod.Mod",
+  "Tags": [],
+  "Scripts": [
+    "nothing.cs"
+  ],
+  "Active": true,
+  "UGCIdentity": null,
+  "CreatorUGCIdentity": "3702738926",
+  "AssemblyName": null
+}
