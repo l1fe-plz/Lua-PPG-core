@@ -44,21 +44,19 @@ function Main()
 
     HumanMod.AfterSpawn = Action(function(instance)
         local person = instance.GetComponent("PersonBehaviour")
-        --person.SetBodyTextures(NewTexture("modicon.png")) well it
+        --person.SetBodyTextures(NewTexture("modicon.png"))
         local limbs = person.Limbs
-        HatCreate(limbs[0].transform, NewSprite("hat.png"))
-        for i = 0, #limbs - 1 do
+        HatCreate(limbs[1].transform, NewSprite("hat.png")) --Теперь Array это Table, баг за багом год за годом
+        for i = 1, #limbs do
             limbs[i].GetComponent("SpriteRenderer").color = New(Color, 0.5, 0.5, 1, 1)
         end
-        local events = AddLuaEvents(limbs[0].gameObject)
+        local events = AddLuaEvents(limbs[1].gameObject)
         events:AddCollisionEnter(function(coll)
-            print("Stupid ".. tostring(coll) .." touched me!")
+            ModAPI.Notify("Stupid ".. tostring(coll.gameObject.name) .." touched me!")
         end)
     end)
-
     ModAPI.Register(brickMod)
     ModAPI.Register(HumanMod)
-
     print("cool :) (you cant see this in logs)")
 end
 
