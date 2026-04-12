@@ -3,11 +3,25 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Lua
 {
     public class MoonSharpWrapper
     {
+        private static readonly HashSet<string> BannedTypes = new HashSet<string>{ //РКН тян довольна, никакого доступа в интернет!
+            "HttpWebRequest", "WebClient", "HttpClient", "UnityWebRequest",
+            "Socket", "TcpClient", "UdpClient",
+            "Assembly", "AssemblyBuilder", "MethodInfo", "FieldInfo", "PropertyInfo",
+            "ConstructorInfo", "TypeInfo", "Activator", "DynamicMethod", "MethodRental",
+            "Harmony", "HarmonyLib", "PatchFunctions", "Detour",
+            "CSharpCodeProvider", "VBCodeProvider", "CodeDomProvider",
+            "FileSystemWatcher", "Registry", "RegistryKey", "ServiceController",
+            "DESCryptoServiceProvider", "RijndaelManaged", "RSACryptoServiceProvider",
+            "NamedPipeServerStream", "Mutex", "Semaphore", "Clipboard", "DataObject",
+            "OleDbConnection", "SqlConnection", "XDocument", "XmlDocument", "XPathDocument",
+            "UnmanagedMemoryStream", "SafeHandle", "CriticalFinalizerObject"
+        };
         private Assembly assembly;
         private object scriptInstance;
         public Type scriptType;
@@ -222,11 +236,10 @@ namespace Lua
         {
             return CreateAction<GameObject>(luaFunction);
         }
-
-        public void RegisterType(Type type)
+        public void RegisterType(Type type, bool setGlobal = true)
         {
             EnsureInitialized();
-
+            
             var methods = userDataType.GetMethods()
                 .Where(m => m.Name == "RegisterType" && m.IsStatic)
                 .ToArray();
@@ -237,11 +250,7 @@ namespace Lua
                 return p.Length >= 1 && p[0].ParameterType == typeof(Type);
             });
 
-            if (overload == null)
-            {
-                print("[MoonSharp Fatal] RegisterType(Type) overload not found");
-                throw new Exception("MoonSharp RegisterType(Type, ...) overload not found");
-            }
+            if (overload == null) return;
 
             var parameters = overload.GetParameters();
             var args = new object[parameters.Length];
@@ -256,13 +265,15 @@ namespace Lua
             }
 
             overload.Invoke(null, args);
-            SetGlobal(type.Name, CreateStaticUserData(type));
+            if (setGlobal) {
+                SetGlobal(type.Name, CreateStaticUserData(type));
+            }
         }
 
         public void RegisterTypes(params Type[] types)
         {
             foreach (var type in types)
-                RegisterType(type);
+                RegisterType(type, true);
         }
 
         public object CreateStaticUserData(Type type)
@@ -293,7 +304,7 @@ namespace Lua
 
         public void RegisterType<T>()
         {
-            RegisterType(typeof(T));
+            RegisterType(typeof(T), true);
         }
 
         public object FromObject(object obj)
@@ -371,7 +382,9 @@ namespace Lua
 
             if (debugPrintProp != null)
             {
-                Action<string> logger = (msg) => UI.DebugPrint($"<color=#0080ff>[LUA SCRIPT]</color> {msg ?? "nil"}");
+                Action<string> logger = (msg) => {
+                    UI.DebugPrint($"<color=#0080ff>[LUA SCRIPT]</color> {msg ?? "nil"}");
+                };
                 debugPrintProp.SetValue(options, logger);
             }
 
@@ -447,6 +460,50 @@ namespace Lua
                     return result;
                 default: return dynValue;
             }
+        }
+        private static bool IsNotBanned(Type type) => !BannedTypes.Contains(type.Name);
+
+        private static bool gameTypesRegistered = false;
+        private static Dictionary<string, Type> typeCache = new Dictionary<string, Type>();
+
+        public void RegisterAllGameTypes() {
+            if (gameTypesRegistered) return;
+
+            string managedPath = Path.Combine(Application.dataPath, "Managed");
+            string[] targetDlls = { 
+                "Assembly-CSharp.dll",
+                "UnityEngine.CoreModule.dll", 
+                "UnityEngine.Physics2DModule.dll",
+                "UnityEngine.UI.dll"
+            };
+            
+            foreach (string dllName in targetDlls) {
+                try {
+                    string fullPath = Path.Combine(managedPath, dllName);
+                    if (File.Exists(fullPath)) {
+                        var asm = Assembly.LoadFrom(fullPath);
+                        var types = asm.GetTypes()
+                            .Where(t => t.IsPublic && (!t.IsAbstract || (t.IsAbstract && t.IsSealed)) && !t.IsGenericType)
+                            .Where(IsNotBanned);
+
+                        foreach (var type in types) {
+                            RegisterType(type, false); 
+                            if (!typeCache.ContainsKey(type.Name)) {
+                                typeCache[type.Name] = type;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    UI.DebugPrint($"[LUA Error] Assemb {dllName} don't load: {e.Message}");
+                }
+            }
+            gameTypesRegistered = true;
+        }
+        public object GetStaticType(string className) {
+            if (typeCache.TryGetValue(className, out Type t)) {
+                return CreateStaticUserData(t);
+            }
+            return null;
         }
     }
 }

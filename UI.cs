@@ -10,7 +10,7 @@ namespace Lua{
         private static Sprite mainSprite;
         private static Image MAIN;
         public static TextMeshProUGUI TextConsol { get; private set; }
-
+        private static string waitOfTheWorld = "";
         public static bool InitConsol(Canvas _canvas){
             if(_canvas == null) return false;
             var canvas = _canvas;
@@ -51,13 +51,18 @@ namespace Lua{
             TextConsol.font = foundFont;
             TextConsol.fontSize = 32f;
             DebugPrint("<color=#00ffd0>[LUA UI]</color> <i>Hello world!</i>");
+            if(!String.IsNullOrEmpty(waitOfTheWorld))DebugPrint(waitOfTheWorld);
+            waitOfTheWorld = "";
 
             MAIN.gameObject.SetActive(false);
             Debug.Log("[LUA UI] Ready to work");
             return true;
         }
         public static void DebugPrint(params object[] objs) {
-            if (TextConsol == null) return;
+            if (TextConsol == null){
+                string l = string.Join(", ", objs.Select(o => o?.ToString() ?? "nil"));
+                waitOfTheWorld += $"{l}\n";
+            };
             string line = string.Join(", ", objs.Select(o => o?.ToString() ?? "nil"));
             TextConsol.text += $"{line}\n";
         }

@@ -7,7 +7,22 @@ using System.Linq;
 
 namespace Lua{
     public class Lua : MonoBehaviour{
-        //ядро мода, тут смешена отвественость это ок, оно и должно делать всё разом
+        //ядро мода, тут смешена отвественость это ок, оно и должно делать всё разом... а ещё sus
+        private readonly HashSet<string> SuspiciousTypes = new HashSet<string>{
+            "Process", "ProcessStartInfo",
+            "File", "FileInfo", "Directory", "DirectoryInfo",
+            "WebClient",
+            "Type",
+            "XmlReader", "XmlWriter",
+            "JavaScriptSerializer", "JavaScriptSerializer",
+            "Environment",
+            "AppDomain",
+            "Thread", "ThreadPool",
+            "Task", "Parallel",
+            "NetworkInterface", "IPGlobalProperties",
+            "DriveInfo",
+            "Console"
+        };
         static string AbsoluteModPath = Path.GetDirectoryName(Path.GetFullPath(Path.Combine(Application.dataPath, "..", ModAPI.Metadata.MetaLocation)));
         static string AbsoluteModsPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Mods"));
         static string AbsoluteSteamModsPath;
@@ -42,20 +57,18 @@ namespace Lua{
 
         public static void OnLoad(){
             print("[LUA] Start up!");
-            string disk = Path.GetPathRoot(AbsoluteModsPath);
-            string steamPath = @"SteamLibrary\steamapps\workshop\content\1118200";
-            string combinedPath = Path.Combine(disk, steamPath);
-            AbsoluteSteamModsPath = Path.GetFullPath(combinedPath);
-            if (!Directory.Exists(AbsoluteSteamModsPath)) {
-                Debug.LogError("[LUA FATAL] Opps we crash QwQ! Can't find steam workshop");
-                return;
-            }
             if(!UI.InitConsol(GameObject.Find("Canvas").GetComponent<Canvas>())){
                 UI.Kill();
                 Debug.LogError("[LUA FATAL] Opps we crash QwQ! Can't start UI");
                 return;
             }
             _ = Instance;
+            string relativeSteamPath = @"..\..\..\workshop\content\1118200";
+            string combinedPath = Path.Combine(Application.dataPath, relativeSteamPath);
+            AbsoluteSteamModsPath = Path.GetFullPath(combinedPath);
+                if (!Directory.Exists(AbsoluteSteamModsPath)) {
+                UI.DebugPrint("<color=yellow>[LUA WARN] Steam workshop mods cannot be found, only the local mod is loaded (if you have steam, please let me know!)</color>");
+            }
             UI.DebugPrint("<color=#00a6ff>[LUA]</color> Core can start work...");
             UI.DebugPrint("<color=#00a6ff>[LUA]</color> Starting scan mods...");
             List<string> fileLocalPaths = Directory.GetFiles(AbsoluteModsPath, "lua.json", SearchOption.AllDirectories).ToList();
@@ -325,55 +338,12 @@ namespace Lua{
                 return null;
             }
             else{
+                wrapper.RegisterAllGameTypes();
                 wrapper.RegisterTypes(
-                    typeof(ModAPI),
-                    typeof(Modification),
-                    typeof(SpawnableAsset),
-                    typeof(Category),
-                    typeof(PersonBehaviour),
-                    typeof(LimbBehaviour),
-                    typeof(Utils),
-                    typeof(Sprite),
-                    typeof(Texture2D),
                     typeof(Lua),
-                    typeof(GameObject),
-                    typeof(Transform),
-                    typeof(Component),
-                    typeof(SpriteRenderer),
-                    typeof(Rigidbody2D), 
-                    typeof(Collider2D),
-                    typeof(MonoBehaviour),
-                    typeof(Vector2),
-                    typeof(Vector3),
-                    typeof(Vector4),
-                    typeof(Quaternion),
-                    typeof(Matrix4x4),
-                    typeof(Color),
-                    typeof(Color32),
-                    typeof(Mathf),
-                    typeof(UnityEngine.Random),
-                    typeof(Rect),
-                    typeof(Bounds),
-                    typeof(Action<GameObject>),
-                    typeof(Action<object>),
-                    typeof(Action),
-                    typeof(System.Action),
-                    typeof(System.Action<>),
-                    typeof(System.Func<>),
-                    typeof(System.Collections.Generic.List<>),
-                    typeof(System.Collections.Generic.Dictionary<,>),
-                    typeof(System.Array),
-                    typeof(System.String),
-                    typeof(System.Convert),
-                    typeof(System.Enum),
-                    typeof(Ray),
-                    typeof(RaycastHit),
-                    typeof(LayerMask),
-                    typeof(Physics2D),
-                    typeof(ContactPoint2D),
-                    typeof(Collision2D),
+                    typeof(LuaExtensions),
                     typeof(LuaEvents),
-                    typeof(Extensions)
+                    typeof(Action<GameObject>)
                 );
                 wrapper.RegisterStandardFunctions();
                 wrapper.SetGlobal("Action", (Func<object, object>)( (obj) => wrapper.ToAction(obj) ));
@@ -381,6 +351,21 @@ namespace Lua{
                     Instance.LuaStartCoroutine(obj, wrapper); 
                     return null;
                 }));
+                wrapper.SetGlobal("__import_type", (Func<string, object>)((className) => {
+                    return wrapper.GetStaticType(className);
+                }));
+                wrapper.DoString(@"
+                    setmetatable(_G, {
+                        __index = function(t, key)
+                            local resolved = __import_type(key)
+                            if resolved then
+                                rawset(t, key, resolved) -- Кэшируем, чтобы больше не дергать C#
+                                return resolved
+                            end
+                            return nil
+                        end
+                    })
+                ", null, "s");
                 wrapper.SetGlobal("AddComponent", (Func<GameObject, object, Component>)((go, typeUserData) => {
                     Type targetType = wrapper.AsType(typeUserData);
                     
@@ -424,8 +409,6 @@ namespace Lua{
                         return null;
                     }
                 }));
-                wrapper.RegisterType(typeof(UI));
-                wrapper.SetGlobal("UI", wrapper.CreateStaticUserData(typeof(UI)));
                 wrappers.Add(wrapper);
                 return wrapper;
             }
@@ -444,7 +427,7 @@ namespace Lua{
         }
         
     }
-    public static class Extensions
+    public static class LuaExtensions
     {
         public static LuaEvents AddLuaEvents(this GameObject instance, MoonSharpWrapper MoonSharp) {
             var existing = instance.GetComponent<LuaEvents>();
