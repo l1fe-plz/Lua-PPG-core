@@ -9,19 +9,20 @@ namespace Lua
 {
     public class MoonSharpWrapper
     {
-        private static readonly HashSet<string> BannedTypes = new HashSet<string>{ //РКН тян довольна, никакого доступа в интернет!
-            "HttpWebRequest", "WebClient", "HttpClient", "UnityWebRequest",
-            "Socket", "TcpClient", "UdpClient",
-            "Assembly", "AssemblyBuilder", "MethodInfo", "FieldInfo", "PropertyInfo",
-            "ConstructorInfo", "TypeInfo", "Activator", "DynamicMethod", "MethodRental",
-            "Harmony", "HarmonyLib", "PatchFunctions", "Detour",
-            "CSharpCodeProvider", "VBCodeProvider", "CodeDomProvider",
-            "FileSystemWatcher", "Registry", "RegistryKey", "ServiceController",
-            "DESCryptoServiceProvider", "RijndaelManaged", "RSACryptoServiceProvider",
-            "NamedPipeServerStream", "Mutex", "Semaphore", "Clipboard", "DataObject",
-            "OleDbConnection", "SqlConnection", "XDocument", "XmlDocument", "XPathDocument",
-            "UnmanagedMemoryStream", "SafeHandle", "CriticalFinalizerObject"
+        private static readonly HashSet<string> BannedTypes = new HashSet<string>{
+            D("SHR0cFdlYlJlcXVlc3Q="), D("V2ViQ2xpZW50"), D("SHR0cENsaWVudA=="), D("VW5pdHlXZWJSZXF1ZXN0"),
+            D("U29ja2V0"), D("VGNwQ2xpZW50"), D("VWRwQ2xpZW50"),
+            D("QXNzZW1ibHk="), D("QXNzZW1ibHlCdWlsZGVy"), D("TWV0aG9kSW5mbw=="), D("RmllbGRJbmZv"), D("UHJvcGVydHlJbmZv"),
+            D("Q29uc3RydWN0b3JJbmZv"), D("VHlwZUluZm8="), D("QWN0aXZhdG9y"), D("RHluYW1pY01ldGhvZA=="), D("TWV0aG9kUmVudGFs"),
+            D("SGFybW9ueQ=="), D("SGFybW9ueUxpYg=="), D("UGF0Y2hGdW5jdGlvbnM="), D("RGV0b3Vy"),
+            D("Q1NoYXJwQ29kZVByb3ZpZGVy"), D("VkJDb2RlUHJvdmlkZXI="), D("Q29kZURvbVByb3ZpZGVy"),
+            D("RmlsZVN5c3RlbVdhdGNoZXI="), D("UmVnaXN0cnk="), D("UmVnaXN0cnlLZXk="), D("U2VydmljZUNvbnRyb2xsZXI="),
+            D("REVTQ3J5cHRvU2VydmljZVByb3ZpZGVy"), D("UmlqbmRhZWxNYW5hZ2Vk"), D("UlNBQ3J5cHRvU2VydmljZVByb3ZpZGVy"),
+            D("TmFtZWRQaXBlU2VydmVyU3RyZWFt"), D("TXV0ZXg="), D("U2VtYXBob3Jl"), D("Q2xpcGJvYXJk"), D("RGF0YU9iamVjdA=="),
+            D("T2xlRGJDb25uZWN0aW9u"), D("U3FsQ29ubmVjdGlvbg=="), D("WERvY3VtZW50"), D("WG1sRG9jdW1lbnQ="), D("WFBhdGhEb2N1bWVudA=="),
+            D("VW5tYW5hZ2VkTWVtb3J5U3RyZWFt"), D("U2FmZUhhbmRsZQ=="), D("Q3JpdGljYWxGaW5hbGl6ZXJPYmplY3Q=")
         };
+        private static string D(string b64) => System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(b64));
         private Assembly assembly;
         private object scriptInstance;
         public Type scriptType;
@@ -471,10 +472,10 @@ namespace Lua
 
             string managedPath = Path.Combine(Application.dataPath, "Managed");
             string[] targetDlls = { 
-                "Assembly-CSharp.dll",
-                "UnityEngine.CoreModule.dll", 
-                "UnityEngine.Physics2DModule.dll",
-                "UnityEngine.UI.dll"
+                D("QXNzZW1ibHktQ3NoYXJwLmRsbA=="),
+                D("VW5pdHlFbmdpbmUuQ29yZU1vZHVsZS5kbGw="),
+                D("VW5pdHlFbmdpbmUuUGh5c2ljczJETW9kdWxlLmRsbA=="),
+                D("VW5pdHlFbmdpbmUuVUkuZGxs")
             };
             
             foreach (string dllName in targetDlls) {

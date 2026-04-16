@@ -1,14 +1,15 @@
 {
-  "Name": "Lua Playground Core",
+  "Name": "Kiwi Core",
   "Author": "l1fe_plz",
-  "Description": "",
-  "ModVersion": "V0.1",
+  "Description": "Reflection²",
+  "ModVersion": "V0.2",
   "GameVersion": "1.24+",
   "ThumbnailPath": "modicon.png",
   "EntryPoint": "Lua.Lua",
   "Tags": [
     "Fun",
-    "Machine"
+    "Machine",
+    "Utility"
   ],
   "Scripts": [
     "Main.cs",
